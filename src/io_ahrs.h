@@ -1,6 +1,10 @@
 #ifndef IO_AHRS_H
 #define IO_AHRS_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdio.h>
 #include <stdbool.h>
 
@@ -54,5 +58,9 @@ unsigned char io_ahrs_tripbuf_read();
  * changes when io_ahrs_tripbuf_offer is called.
  */
 unsigned char io_ahrs_tripbuf_write();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

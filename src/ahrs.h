@@ -1,6 +1,10 @@
 #ifndef AHRS_H
 #define AHRS_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdbool.h>
 
 
@@ -53,5 +57,9 @@ int ahrs_att_recv();
 void parse_att_reset();
 
 int ahrs_set_datacomp();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
