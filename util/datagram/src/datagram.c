@@ -81,7 +81,10 @@ int main(int argc, char *argv[])
 			// create a new datagram
 			if (count > 0)
 			{
-				ahrs_write(buf, count);
+				if (ahrs_write(buf, count) != count + 4)
+				{
+					return 0;
+				}
 			}
 			count = 0;
 		}
@@ -89,7 +92,10 @@ int main(int argc, char *argv[])
 		{
 			if (count > 0)
 			{
-				ahrs_write(buf, count);
+				if (ahrs_write(buf, count) != count + 4)
+				{
+					return 0;
+				}
 			}
 			return 0;
 		}
