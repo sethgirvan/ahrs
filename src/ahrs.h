@@ -28,6 +28,16 @@ int ahrs_cont_start();
 float ahrs_att(enum att_axis dir);
 
 /**
+ * returns the kHeadingStatus component from the ahrs associated with the
+ * current attitude data. Values:
+ *     1: uncertainty less than 2 degrees
+ *     2: uncertainty between 2 and 10 degres
+ *     3: uncertainty greater than 10 degrees
+ * However, it may give other values (I have known it to give the value 0)
+ */
+uint_fast8_t ahrs_headingstatus();
+
+/**
  * Updates the values returned by ahrs_att to the newest complete set
  * of data that has been received from the ahrs before some point in time
  * within this function's lifetime.

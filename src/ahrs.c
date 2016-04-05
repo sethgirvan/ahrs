@@ -20,6 +20,7 @@
 #include "io_ahrs.h"
 #include "crc_xmodem.h"
 #include "dbg.h"
+#include "macrodef.h"
 
 
 #define BAUD 38400UL
@@ -28,21 +29,30 @@
 
 // 2 Byte Count + 1 Frame Id + 1 ID Count + 3 * (1 Component ID + 4 float32) +
 // 2 CRC
-static uint_fast16_t const DATAGRAM_BYTECOUNT = 21U;
+static uint_fast16_t const DATAGRAM_BYTECOUNT = 23U;
 static unsigned char const FRAME_ID = 0x05U; // kGetDataResp command
-// 1 Heading + 1 Pitch + 1 Roll (in any order in payload)
-static uint_fast8_t const ID_COUNT = 3U;
+// 1 Heading + 1 Pitch + 1 Roll + 1 HeadingStatus (in any order in payload)
+static uint_fast8_t const ID_COUNT = 4U;
 
-static uint16_t const CRC_POST_ID_COUNT = 0x6705U; // crc of first 4 assumed byte values
+static uint16_t const CRC_POST_ID_COUNT = 0x7982U; // crc of first 4 assumed byte values
 
 
 // triple buffer coordinated with io_ahrs_tripbuf... functions
-float attitude[3][NUM_ATT_AXES];
+struct ahrs
+{
+	float att[NUM_ATT_AXES];
+	uint_fast8_t headingstatus;
+} ahrs[3];
 
 
 float ahrs_att(enum att_axis const dir)
 {
-	return attitude[io_ahrs_tripbuf_read()][dir];
+	return ahrs[io_ahrs_tripbuf_read()].att[dir];
+}
+
+uint_fast8_t ahrs_headingstatus()
+{
+	return ahrs[io_ahrs_tripbuf_read()].headingstatus;
 }
 
 bool ahrs_att_update()
@@ -63,6 +73,7 @@ static enum
 	ANGLE_BYTE2,
 	ANGLE_BYTE3,
 #endif
+	HEADINGSTATUS,
 	CRC1,
 	CRC2
 } state = INIT;
@@ -104,7 +115,6 @@ static bool parse_att(unsigned char const c)
 					sync[(idx + 1) % 4] != DATAGRAM_BYTECOUNT >> 8)
 			{
 				// This will always loop at least thrice as sync is populated.
-				DEBUG("Attempting to synchronize with datagram.");
 
 				// First four bytes not what expected. Resynchronize assuming
 				// the byte just received was the Frame ID.
@@ -121,11 +131,19 @@ static bool parse_att(unsigned char const c)
 		// their values are already assumed
 		crc = CRC_POST_ID_COUNT;
 
-		// if 'comp_is_read & 1U << dir (ie PITCH/YAW/ROLL)' is not false, a
-		// full, acceptable value has been read in for that component
-		static uint_fast8_t comp_is_read;
-		comp_is_read = 0;
-		do
+		// Just get the triple buffer write index once, since it can't
+		// change until io_ahrs_tripbuf_offer is invoked.
+		static unsigned char write_idx;
+		write_idx = io_ahrs_tripbuf_write();
+
+		static struct cir
+		{
+			unsigned char att           : 3; // Bit positions PITCH, YAW, ROLL
+			unsigned char headingstatus : 1;
+		} comp_is_read;
+		comp_is_read = (struct cir){0, 0};
+		static uint_fast8_t i;
+		for (i = ID_COUNT; i--; crc = crc_xmodem_update(crc, c))
 		{
 			state = COMPONENT_ID;
 			return false;
@@ -133,40 +151,50 @@ static bool parse_att(unsigned char const c)
 
 			static uint_fast8_t dir;
 			// data components may arrive in arbitrary order
-			if (c == 5U) // kHeading component
+			if (c == 5) // kHeading component
 			{
 				dir = YAW;
 			}
-			else if (c == 24U) // kPitch component
+			else if (c == 24) // kPitch component
 			{
 				dir = PITCH;
 			}
-			else if (c == 25U) // kRoll component
+			else if (c == 25) // kRoll component
 			{
 				dir = ROLL;
 			}
+			else if (c == 79) // kHeadingStatus component
+			{
+				if (comp_is_read.headingstatus)
+				{
+					// repeat component, fail datagram
+					DEBUG("Repead component.");
+					state = INIT;
+					return false;
+				}
+				comp_is_read.headingstatus = true;
+				crc = crc_xmodem_update(crc, c);
+				state = HEADINGSTATUS;
+				return false;
+		case HEADINGSTATUS:;
+				ahrs[write_idx].headingstatus = c;
+				continue;
+			}
 			else // unrecognized component type
 			{
-				// Some component ID besides kHeading, kPitch, or kRoll, fail
-				// datagram.
-				DEBUG("Unrecognized component type.");
+				// fail datagram
+				DEBUG("Unrecognized component.");
 				state = INIT;
 				return false;
 			}
 
-			if (comp_is_read & (1U << dir))
+			if (comp_is_read.att & (1U << dir))
 			{
 				// component is a repeat, fail datagram
 				DEBUG("Repeat component.");
 				state = INIT;
 				return false;
 			}
-
-			// Just get the triple buffer index to write to once, since it
-			// can't change until io_ahrs_tripbuf_offer is invoked.
-			static unsigned char write_idx;
-			write_idx = io_ahrs_tripbuf_write();
-
 
 /* There doesn't seem to be any compiler-defined macros to check for IEEE754
  * format floats. GCC never defines __STD_IEC_559__, since it doesn't conform.
@@ -187,12 +215,11 @@ static bool parse_att(unsigned char const c)
 					state = ANGLE;
 					return false;
 		case ANGLE:;
-					/* The ahrs transmits floats as big endian by default,
-					 * while native floats are assumed to be little endian.
-					 *
-					 * type-pun float in order to write raw bytes
-					 */
-					((unsigned char *)&attitude[write_idx][dir])[j] = c;
+					// The ahrs transmits floats as big endian by default,
+					// while native floats are assumed to be little endian.
+					// 
+					// type-pun float in order to write raw bytes
+					((unsigned char *)&ahrs[write_idx].att[dir])[j] = c;
 				}
 			}
 #else // translate floating point data to native format portably
@@ -261,21 +288,20 @@ static bool parse_att(unsigned char const c)
 						return false;
 					}
 					// float is +/- 0
-					attitude[write_idx][dir] = 0.f;
+					ahrs[write_idx].att[dir] = 0.f;
 				}
 				else
 				{
 					// float is a normalized value
-					attitude[write_idx][dir] = mantissa;
+					ahrs[write_idx].att[dir] = mantissa;
 					// The significand is 1.mantissa, so the exponent needs to
 					// be decreased by the number of mantissa bits. expon also
 					// has a bias (0 offset) of 127.
 					int power = expon - 23 - 127;
-					attitude[write_idx][dir] =
-							attitude[write_idx][dir] * exp2f(power);
+					ahrs[write_idx].att[dir] *= exp2f(power);
 					if (sign)
 					{
-						attitude[write_idx][dir] *= -1;
+						ahrs[write_idx].att[dir] *= -1;
 					}
 				}
 			}
@@ -288,20 +314,25 @@ static bool parse_att(unsigned char const c)
 
 			// kHeading, kPitch, and kRoll, all give a value in a 4 byte/32
 			// bit format, in degrees, in the range [0, 360).
-			if (attitude[write_idx][dir] < 0.f ||
-					360.f <= attitude[write_idx][dir])
+			if (ahrs[write_idx].att[dir] < 0.f ||
+					360.f <= ahrs[write_idx].att[dir])
 			{
 				// received attitude value outside of the expected range
 				state = INIT;
 				return false;
 			}
-			attitude[write_idx] \= 360.f; // scale to be from 0.0 - 1.0
+			ahrs[write_idx].att[dir] \= 360.f; // scale to be from 0.0 - 1.0
 			*/
 
-			comp_is_read |= 1U << dir; // valid value has been read for this dir
-			crc = crc_xmodem_update(crc, c);
+			comp_is_read.att |= 1U << dir; // valid value has been read for this dir
 		}
-		while (comp_is_read != ((1U << PITCH) | (1U << YAW) | (1U << ROLL)));
+		if (!~comp_is_read.att || !comp_is_read.headingstatus)
+		{
+			DEBUG("Not all data components received.");
+			// fail datagram
+			state = INIT;
+			return false;
+		}
 
 		state = CRC1;
 		return false;
@@ -381,11 +412,12 @@ int ahrs_set_datacomp()
 	 * parse_att() allows them to be in any order
 	 */
 	static unsigned char const datagram_set_comp[] = {
-			0x00, 0x09, // bytecount
+			0x00, 0x0A, // bytecount
 			0x03, // Frame ID: kSetDataComponents
-			0x03, // ID Count
-			5, 24, 25, // Component IDs: kHeading, kPitch, kRoll, respectively
-			0xDF, 0xDE}; // crc
+			0x04, // ID Count
+			// Component IDs: kHeading, kPitch, kRoll, kHeadingStatus respectively
+			5, 24, 25, 79,
+			0xE2, 0xEF}; // crc
 	if (ahrs_write_raw(datagram_set_comp, sizeof(datagram_set_comp)) !=
 			sizeof(datagram_set_comp))
 	{

@@ -1,6 +1,7 @@
 #define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
 #include <time.h>
+#include <inttypes.h>
 
 #include "ahrs.h"
 #include "io.h"
@@ -33,8 +34,8 @@ int main (int argc, char *argv[])
 	{
 		if (ahrs_att_update())
 		{
-			printf("P: %f\tR: %f\tY: %f\r", ahrs_att(PITCH), ahrs_att(ROLL),
-					ahrs_att(YAW));
+			printf("P: %f\tR: %f\tY: %f HS: %" PRIuFAST8 "\r", ahrs_att(PITCH),
+					ahrs_att(ROLL), ahrs_att(YAW), ahrs_headingstatus());
 			fflush(stdout);
 		}
 		nanosleep(&(struct timespec){.tv_nsec = 1000000L}, NULL);

@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <inttypes.h>
 
 #include "ahrs.h"
 #include "io_ahrs.h"
@@ -19,8 +20,8 @@ int main (int argc, char *argv[])
 	{
 		if (ahrs_att_update())
 		{
-			printf("P: %f\tR: %f\tY: %f\r", ahrs_att(PITCH), ahrs_att(ROLL),
-					ahrs_att(YAW));
+			printf("P: %f\tR: %f\tY: %f HS: %" PRIuFAST8 "\r", ahrs_att(PITCH),
+					ahrs_att(ROLL), ahrs_att(YAW), ahrs_headingstatus());
 			fflush(stdout);
 		}
 	}
