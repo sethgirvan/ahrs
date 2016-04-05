@@ -32,7 +32,7 @@ OBJECTS = $(addprefix $(BUILDDIR)/, $(addsuffix .o, $(notdir $(basename $(SOURCE
 TARGET = avr_relay
 
 .PHONY: all
-all: $(BUILDDIR) $(TARGET).ihex
+all: $(TARGET).ihex
 
 $(BUILDDIR):
 	mkdir -p $(BUILDDIR)
@@ -45,7 +45,7 @@ $(BUILDDIR)/%.o: $(SRCDIR)/%.cpp
 	$(CXX) $< -o $@ $(CXXFLAGS) $(CPPFLAGS)
 
 
-$(TARGET).elf: $(OBJECTS) $(DEPS)
+$(TARGET).elf: $(BUILDDIR) $(OBJECTS) $(DEPS)
 	$(CC) $(OBJECTS) $(EXTERN_OBJECTS) -o $@ $(LDFLAGS)
 
 $(TARGET).ihex: $(TARGET).elf
