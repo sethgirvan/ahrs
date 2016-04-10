@@ -10,11 +10,11 @@ endif
 
 MCU = atmega2560
 F_CPU = 16000000UL
-avr_CFLAGS = -mmcu=$(MCU) -DF_CPU=$(F_CPU) -DAVR
+CFLAGS_avr = -mmcu=$(MCU) -DF_CPU=$(F_CPU) -DAVR
 
-EXTERN_INCLUDES = ../io/src $($(PLATFORM)_EXTERN_INCLUDES)
-CFLAGS = -c -std=c11 -Wall -Wpedantic -Wextra -Isrc -g $($(PLATFORM)_CFLAGS) $(addprefix -I, $(EXTERN_INCLUDES))
-CPPFLAGS = -DIEEE754 $($(PLATFORM)_CPPFLAGS)
+EXTERN_INCLUDES = ../io/src $(EXTERN_INCLUDES_$(PLATFORM))
+CFLAGS = -c -std=c11 -Wall -Wpedantic -Wextra -I$(SRCDIR) -g $(CFLAGS_$(PLATFORM)) $(addprefix -I, $(EXTERN_INCLUDES))
+CPPFLAGS = -DIEEE754 $(CPPFLAGS_$(PLATFORM))
 
 BUILDDIR = build_$(PLATFORM)
 SRCDIR = src
