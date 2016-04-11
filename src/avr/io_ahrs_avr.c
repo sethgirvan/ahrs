@@ -86,7 +86,7 @@ FILE *io_ahrs = &(FILE)FDEV_SETUP_STREAM(uart_ahrs_putchar, uart_ahrs_getchar,
  *     Parity: none
  *     Baud: BAUD
  */
-void io_ahrs_init(char *path)
+void io_ahrs_init(char const *path)
 {
 	(void)path;
 #include <util/setbaud.h> // uses BAUD macro

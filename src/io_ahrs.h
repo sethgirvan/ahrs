@@ -8,7 +8,7 @@ extern "C" {
 #include <stdio.h>
 #include <stdbool.h>
 
-void io_ahrs_init(char *path);
+void io_ahrs_init(char const *path);
 
 void io_ahrs_clean();
 

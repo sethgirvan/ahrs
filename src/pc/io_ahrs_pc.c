@@ -15,7 +15,7 @@ static pthread_t thread_recv;
 static int (*handler_recv)();
 
 
-void io_ahrs_init(char *path)
+void io_ahrs_init(char const *path)
 {
 	io_ahrs = fopen(path, "r+");
 	// TODO: correctly handle termios
