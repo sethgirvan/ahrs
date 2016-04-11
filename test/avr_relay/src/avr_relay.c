@@ -13,6 +13,8 @@ int main (int argc, char *argv[])
 	io_stdout_init();
 
 	io_ahrs_init(NULL);
+	// May not be strictly necessary, since the data components can be saved to
+	// non-volatile memory.
 	ahrs_set_datacomp();
 	ahrs_cont_start();
 	io_ahrs_recv_start(ahrs_att_recv);
