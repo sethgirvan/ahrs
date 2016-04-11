@@ -37,8 +37,13 @@ static uint_fast8_t const ID_COUNT = 4U;
 static uint16_t const CRC_POST_ID_COUNT = 0x7982U; // crc of first 4 assumed byte values
 
 
+float const ahrs_range[NUM_ATT_AXES][2] = {
+	[PITCH] = {[COMPONENT_MIN] = -90.f, [COMPONENT_MAX] = 90.f},
+	[YAW] = {[COMPONENT_MIN] = 0.f, [COMPONENT_MAX] = 360.f /* Should technically be the next lower float */},
+	[ROLL] = {[COMPONENT_MIN] = -180.f, [COMPONENT_MAX] = 180.f}};
+
 // triple buffer coordinated with io_ahrs_tripbuf... functions
-struct ahrs
+static struct ahrs
 {
 	float att[NUM_ATT_AXES];
 	uint_fast8_t headingstatus;

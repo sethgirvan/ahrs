@@ -8,8 +8,11 @@ extern "C" {
 #include <stdbool.h>
 
 
+enum {COMPONENT_MIN, COMPONENT_MAX};
+
 enum att_axis {PITCH, YAW, ROLL, NUM_ATT_AXES};
 
+extern float const ahrs_range[NUM_ATT_AXES][2];
 
 /**
  * Tells ahrs to start sending data in continous mode.
@@ -22,6 +25,9 @@ enum att_axis {PITCH, YAW, ROLL, NUM_ATT_AXES};
 int ahrs_cont_start();
 
 /**
+ * returns whatever value was received from the ahrs for the passed direction.
+ * If the ahrs is in degrees mode the values will range per ahrs_range[dir].
+ *
  * The values returned will not changed until ahrs_att_update() is called and it
  * returns true.
  */
