@@ -70,7 +70,7 @@ int ahrs_att_recv();
  *
  * Can be used due for, eg, a serial timeout for intra-datagram data.
  */
-void parse_att_reset();
+void ahrs_parse_att_reset();
 
 int ahrs_set_datacomp();
 

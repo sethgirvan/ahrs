@@ -178,10 +178,13 @@ static bool parse_att(unsigned char const c)
 					return false;
 				}
 				comp_is_read.headingstatus = true;
+
 				crc = crc_xmodem_update(crc, c);
+
 				state = HEADINGSTATUS;
 				return false;
 		case HEADINGSTATUS:;
+
 				ahrs[write_idx].headingstatus = c;
 				continue;
 			}
@@ -377,7 +380,7 @@ static bool parse_att(unsigned char const c)
  * parse_att() will consider the next byte passed to potentially
  * be the first byte of a datagram.
  */
-void parse_att_reset()
+void ahrs_parse_att_reset()
 {
 	state = INIT;
 	return;
