@@ -150,7 +150,7 @@ void io_ahrs_recv_stop()
 
 // new is initialized to 0, so the reader/consumer can know initially when
 // there has been any valid data (eg waiting to run PID until a complete data
-// set has been received from the ahrs.
+// set has been received from the ahrs.)
 //
 // clean and new need to be volatile so changes from ISR are visible and so
 // changes outside ISR are correctly ordered relative to disabling and
