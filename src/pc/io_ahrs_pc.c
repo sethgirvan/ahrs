@@ -1,7 +1,6 @@
 #define _POSIX_C_SOURCE 1
 #include <stdio.h>
 #include <pthread.h>
-#include <time.h>
 #include <assert.h>
 
 #include "io_ahrs.h"
