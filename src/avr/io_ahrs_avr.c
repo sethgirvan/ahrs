@@ -89,6 +89,7 @@ FILE *io_ahrs = &(FILE)FDEV_SETUP_STREAM(uart_ahrs_putchar, uart_ahrs_getchar,
 void io_ahrs_init(char const *path)
 {
 	(void)path;
+	sei(); // enable global interrupts (they may be already enabled anyway)
 #include <util/setbaud.h> // uses BAUD macro
 	CC_XXX(UBRR, NUSART, ) = UBRR_VALUE; // set baud rate register
 	// USE_2X is 1 only if necessary to be within BAUD_TOL
