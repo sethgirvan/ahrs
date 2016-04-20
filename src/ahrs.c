@@ -225,7 +225,7 @@ static bool parse_att(unsigned char const c)
 		case ANGLE:;
 					// The ahrs transmits floats as big endian by default,
 					// while native floats are assumed to be little endian.
-					// 
+					//
 					// type-pun float in order to write raw bytes
 					((unsigned char *)&ahrs[write_idx].att[dir])[j] = c;
 				}
