@@ -5,6 +5,7 @@
 
 #include "io_ahrs.h"
 #include "macrodef.h"
+#include "dbg.h"
 
 
 FILE *io_ahrs;
@@ -17,6 +18,10 @@ static int (*handler_recv)();
 void io_ahrs_init(char const *path)
 {
 	io_ahrs = fopen(path, "r+");
+	if (!io_ahrs)
+	{
+		DEBUG("Failed to open %s", path);
+	}
 	// TODO: correctly handle termios
 	return;
 }
